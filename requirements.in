@@ -1,0 +1,14 @@
+# Web framework
+fastapi
+uvicorn[standard]
+
+# Database / ORM
+sqlalchemy
+alembic
+
+# (se você usa Postgres)
+psycopg2-binary
+
+# (se usa async DB, descomente um dos dois abaixo)
+# asyncpg
+# aiosqlite
