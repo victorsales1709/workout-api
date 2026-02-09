@@ -17,4 +17,4 @@ class AthleteModel(BaseModel):
     categorie: Mapped['CategorieModel'] = relationship(back_populates='athlete')
     categorie_id: Mapped[int] = mapped_column(ForeignKey('categories.pk_id'))
     training_center: Mapped['TrainingCenterModel'] = relationship(back_populates='athlete')
-    categorie_id: Mapped[int] = mapped_column(ForeignKey('training_centers.pk_id'))
+    training_center_id: Mapped[int] = mapped_column(ForeignKey('training_centers.pk_id'))

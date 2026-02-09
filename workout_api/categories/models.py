@@ -7,4 +7,4 @@ class CategorieModel(BaseModel):
 
     pk_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
-    categorie: Mapped['AthleteModel'] = relationship(back_populates='athlete')
+    categorie: Mapped['AthleteModel'] = relationship(back_populates='categorie')
