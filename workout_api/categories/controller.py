@@ -22,7 +22,7 @@ async def query(db_session: DatabaseDependency) -> list[CategorieOut]:
     categories = list[CategorieOut] = (await db_session.execute(select(CategorieModel))).scalars().all()
     return categories
 
-@router.get('/{categorie_id}', summary='Get a categorie by ID', status_code=status.HTTP_200_OK, response_model=CategorieOut)
+@router.get('/id', summary='Get a categorie by ID', status_code=status.HTTP_200_OK, response_model=CategorieOut)
 async def query(id: UUID4, db_session: DatabaseDependency) -> CategorieOut:
     categorie: CategorieOut = (await db_session.execute(select(CategorieModel).filter_by(id=id))).scalars().first()
     if not categorie:
