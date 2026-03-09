@@ -6,9 +6,8 @@ uvicorn[standard]
 sqlalchemy
 alembic
 
-# (se você usa Postgres)
+# Postgres
 psycopg2-binary
 
-# (se usa async DB, descomente um dos dois abaixo)
-# asyncpg
-# aiosqlite
+# Settings
+pydantic-settings
