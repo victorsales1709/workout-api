@@ -19,7 +19,7 @@ async def post(db_session: DatabaseDependency, categorie_in: CategorieIn = Body(
 
 @router.get('/', summary='Get all categories', status_code=status.HTTP_200_OK, response_model=list[CategorieOut])
 async def query(db_session: DatabaseDependency) -> list[CategorieOut]:
-    categories = list[CategorieOut] = (await db_session.execute(select(CategorieModel))).scalars().all()
+    categories = (await db_session.execute(select(CategorieModel))).scalars().all()
     return categories
 
 @router.get('/id', summary='Get a categorie by ID', status_code=status.HTTP_200_OK, response_model=CategorieOut)

@@ -6,4 +6,4 @@ class CategorieIn(BaseSchema):
     name: Annotated[str, Field(description='Categorie Name', example='Scale', max_length=10)]
 
 class CategorieOut(CategorieIn):
-    id: Annotated[UUID4, Field(description='Categorie id', example='43267895401', max_length=11)]
+    id: Annotated[UUID4, Field(description='Categorie id')]
