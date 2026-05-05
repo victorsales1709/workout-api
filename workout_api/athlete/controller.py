@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 from uuid import uuid4
-from fastapi import APIRouter, Body, status
+from fastapi import APIRouter, Body, Depends, status
 from pydantic import UUID4
 from starlette.exceptions import HTTPException
 from workout_api.athlete.models import AthleteModel
-from workout_api.athlete.schemas import AthleteIn, AthleteOut, AthleteUpdate
+from workout_api.athlete.schemas import AthleteIn, AthleteOut, AthleteQuery, AthleteUpdate
 from workout_api.categories.models import CategorieModel
 from workout_api.contrib.dependencies import DatabaseDependency
 from sqlalchemy import select
@@ -50,10 +50,28 @@ async def post(db_session: DatabaseDependency, athlete_in: AthleteIn = Body(...)
     return athlete_out
 
 @router.get('/', summary='Get all athletes', status_code=status.HTTP_200_OK, response_model=list[AthleteOut],)
-async def query(db_session: DatabaseDependency) -> list[AthleteOut]:
-    athletes: list[AthleteModel] = (await db_session.execute(select(AthleteModel))).scalars().all()
+async def query(
+    db_session: DatabaseDependency,
+    params: AthleteQuery = Depends()
+) -> list[AthleteOut]:
 
-    return [AthleteOut.model_validate(athlete) for athlete in athletes]
+    stmt = select(AthleteModel)
+
+    if params.name:
+        stmt = stmt.where(AthleteModel.name.ilike(f"%{params.name}%"))
+
+    if params.sort == "name_asc":
+        stmt = stmt.order_by(AthleteModel.name.asc())
+    elif params.sort == "name_desc":
+        stmt = stmt.order_by(AthleteModel.name.desc())
+
+    offset = (params.page - 1) * params.limit
+    stmt = stmt.offset(offset).limit(params.limit)
+
+    result = await db_session.execute(stmt)
+    athletes = result.scalars().all()
+
+    return athletes
 
 @router.get('/{id}', summary='Get an athlete by ID', status_code=status.HTTP_200_OK, response_model=AthleteOut,)
 async def get(id: UUID4, db_session: DatabaseDependency) -> AthleteOut:
