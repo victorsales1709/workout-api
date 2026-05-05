@@ -5,7 +5,7 @@ from workout_api.categories.schemas import CategorieIn
 from workout_api.contrib.schemas import OutMixin
 from workout_api.training_center.schemas import BaseSchema, TrainingCenterAthlete
 
-class Athlete(BaseModel):
+class Athlete(BaseSchema):
     name: Annotated[str, Field(description='Athlete name', example='John', max_length=50)]
     athlete_id: Annotated[str, Field(description='Athlete id', example='43267895401', max_length=11)]
     age: Annotated[int, Field(description='Athlete age', example=25)]

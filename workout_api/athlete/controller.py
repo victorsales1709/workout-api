@@ -49,20 +49,15 @@ async def post(db_session: DatabaseDependency, athlete_in: AthleteIn = Body(...)
 
     return athlete_out
 
-@router.get('/', summary='Get all athletes', status_code=status.HTTP_200_OK, response_model=list[AthleteOut])
+@router.get('/', summary='Get all athletes', status_code=status.HTTP_200_OK, response_model=list[AthleteOut],)
 async def query(db_session: DatabaseDependency) -> list[AthleteOut]:
-    result = await db_session.execute(
-        select(AthleteModel).options(
-            selectinload(AthleteModel.training_center)
-        )
-    )
-    athletes = result.scalars().all()
+    athletes: list[AthleteModel] = (await db_session.execute(select(AthleteModel))).scalars().all()
 
     return [AthleteOut.model_validate(athlete) for athlete in athletes]
 
 @router.get('/{id}', summary='Get an athlete by ID', status_code=status.HTTP_200_OK, response_model=AthleteOut,)
 async def get(id: UUID4, db_session: DatabaseDependency) -> AthleteOut:
-    athlete: AthleteModel = (await db_session.execute(select(AthleteModel).filter_by(id=id))).scalars().first()
+    athlete: AthleteOut = (await db_session.execute(select(AthleteModel).filter_by(id=id))).scalars().first()
     if not athlete:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Athlete not found: {id}')
     
@@ -81,3 +76,12 @@ async def get(id: UUID4, db_session: DatabaseDependency, athlete_up: AthleteUpda
     await db_session.refresh(athlete)
 
     return AthleteOut.model_validate(athlete)
+
+@router.delete('/{id}', summary='Delete an athlete by ID', status_code=status.HTTP_204_NO_CONTENT)
+async def delete(id: UUID4, db_session: DatabaseDependency) -> None:
+    athlete: AthleteOut = (await db_session.execute(select(AthleteModel).filter_by(id=id))).scalars().first()
+    if not athlete:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Athlete not found: {id}')
+    
+    await db_session.delete(athlete)
+    await db_session.commit()
