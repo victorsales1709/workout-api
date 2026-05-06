@@ -1,9 +1,9 @@
 from typing import Annotated, Optional, Literal
-from pydantic import BaseModel, Field, PositiveFloat
+from pydantic import BaseModel, ConfigDict, Field, PositiveFloat
 
-from workout_api.categories.schemas import CategorieIn
+from workout_api.categories.schemas import CategorieIn, CategorieOut
 from workout_api.contrib.schemas import OutMixin
-from workout_api.training_center.schemas import BaseSchema, TrainingCenterAthlete
+from workout_api.training_center.schemas import BaseSchema, TrainingCenterAthlete, TrainingCenterOut
 
 class Athlete(BaseSchema):
     name: Annotated[str, Field(description='Athlete name', example='John', max_length=50)]
@@ -35,3 +35,10 @@ class AthleteQuery(BaseModel):
 
     page: int = Field(1, ge=1, description="Page number")
     limit: int = Field(10, ge=1, le=100, description="Items per page")
+
+class AthleteSimpleOut(BaseModel):
+    name: str
+    training_center: TrainingCenterOut
+    categorie: CategorieOut
+
+    model_config = ConfigDict(from_attributes=True)

@@ -4,13 +4,16 @@ from fastapi import APIRouter, Body, Depends, status
 from pydantic import UUID4
 from starlette.exceptions import HTTPException
 from workout_api.athlete.models import AthleteModel
-from workout_api.athlete.schemas import AthleteIn, AthleteOut, AthleteQuery, AthleteUpdate
+from workout_api.athlete.schemas import AthleteIn, AthleteOut, AthleteQuery, AthleteSimpleOut, AthleteUpdate
 from workout_api.categories.models import CategorieModel
 from workout_api.contrib.dependencies import DatabaseDependency
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from sqlalchemy.future import select
 from workout_api.training_center.models import TrainingCenterModel
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 
 router = APIRouter()
 
@@ -39,23 +42,35 @@ async def post(db_session: DatabaseDependency, athlete_in: AthleteIn = Body(...)
 
         db_session.add(athlete_model)
         await db_session.commit()
-        
+
     except Exception as e:
         print(f"{e}") 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Error"
         )
+    
+    try:
+        await db_session.commit()
+    except IntegrityError as e:
+        await db_session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_303,
+            detail=f'Athlete with the same athlete_id already exists: {athlete_in.athlete_id}'
+        )
 
     return athlete_out
 
-@router.get('/', summary='Get all athletes', status_code=status.HTTP_200_OK, response_model=list[AthleteOut],)
+@router.get('/', summary='Get all athletes', status_code=status.HTTP_200_OK, response_model=Page[AthleteSimpleOut])
 async def query(
     db_session: DatabaseDependency,
     params: AthleteQuery = Depends()
-) -> list[AthleteOut]:
+) -> Page[AthleteSimpleOut]:
 
-    stmt = select(AthleteModel)
+    stmt = select(AthleteModel).options(
+        selectinload(AthleteModel.training_center),
+        selectinload(AthleteModel.categorie)
+    )
 
     if params.name:
         stmt = stmt.where(AthleteModel.name.ilike(f"%{params.name}%"))
@@ -65,20 +80,21 @@ async def query(
     elif params.sort == "name_desc":
         stmt = stmt.order_by(AthleteModel.name.desc())
 
-    offset = (params.page - 1) * params.limit
-    stmt = stmt.offset(offset).limit(params.limit)
+    return await paginate(db_session, stmt)
 
-    result = await db_session.execute(stmt)
-    athletes = result.scalars().all()
-
-    return athletes
-
-@router.get('/{id}', summary='Get an athlete by ID', status_code=status.HTTP_200_OK, response_model=AthleteOut,)
+@router.get('/{id}', summary='Get an athlete by ID', status_code=status.HTTP_200_OK, response_model=Page[AthleteOut])
 async def get(id: UUID4, db_session: DatabaseDependency) -> AthleteOut:
     athlete: AthleteOut = (await db_session.execute(select(AthleteModel).filter_by(id=id))).scalars().first()
     if not athlete:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Athlete not found: {id}')
     
+    return athlete
+
+@router.get('/name/{name}&id/{athlete_id}', summary='Get an athlete by name and ID', status_code=status.HTTP_200_OK, response_model=AthleteOut)
+async def get_by_name(name: str, athlete_id: str, db_session: DatabaseDependency) -> AthleteOut:
+    athlete: AthleteOut = (await db_session.execute(select(AthleteModel).filter_by(name=name, athlete_id=athlete_id))).scalars().first()
+    if not athlete:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Athlete not found: {name}')
     return athlete
 
 @router.patch('/{id}', summary='Update an athlete by ID', status_code=status.HTTP_200_OK, response_model=AthleteOut)
